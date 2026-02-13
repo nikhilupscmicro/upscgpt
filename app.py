@@ -1,13 +1,13 @@
 import streamlit as st
-import chromadb
 import os
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from langchain_community.vectorstores import Chroma
-# Force the import from the community folder
-from langchain.chains.retrieval_qa.base import RetrievalQA
+# RetrievalQA now imported from langchain_community
+from langchain_community.chains import RetrievalQA
 
 # --- 1. BRANDING & UI ---
 st.set_page_config(page_title="UPSCGPT", page_icon="🎓")
+
 
 st.markdown("""
     <style>
