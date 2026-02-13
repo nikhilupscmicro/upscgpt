@@ -1,34 +1,42 @@
 import streamlit as st
 import chromadb
+import os
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from langchain_community.vectorstores import Chroma
 from langchain.chains import RetrievalQA
 
-# 1. UI SETUP
-st.set_page_config(page_title="UPSCgtp | Cloud AI", layout="centered")
+# --- 1. BRANDING & UI ---
+st.set_page_config(page_title="UPSCGPT", page_icon="🎓")
 
-# 2. BACKEND (Cloud Connection)
+st.markdown("""
+    <style>
+    .stApp { background-color: #0F172A; color: white; }
+    .stTextInput>div>div>input { background-color: #1E293B; color: white; }
+    </style>
+""", unsafe_allow_html=True)
+
+# --- 2. CLOUD BACKEND CONNECTION ---
 @st.cache_resource
-def init_upsc_cloud():
-    # These secrets will be set in Streamlit Cloud "Advanced Settings"
+def connect_to_upscgpt_brain():
+    # Streamlit pulls these from the 'Secrets' tab in the dashboard
     api_key = st.secrets["GOOGLE_API_KEY"]
-    chroma_host = st.secrets["CHROMA_CLOUD_HOST"]
-    chroma_token = st.secrets["CHROMA_CLOUD_TOKEN"]
+    host = st.secrets["CHROMA_CLOUD_HOST"]
+    token = st.secrets["CHROMA_CLOUD_TOKEN"]
 
-    # Connect to Gemini
+    # Initialize Gemini 1.5 Flash
     embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004", google_api_key=api_key)
     llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=api_key, temperature=0.1)
 
-    # Connect to Chroma Cloud
+    # Connect to the Remote Chroma Cloud
     client = chromadb.HttpClient(
-        host=chroma_host,
-        headers={"Authorization": f"Bearer {chroma_token}"}
+        host=host,
+        headers={"Authorization": f"Bearer {token}"}
     )
     
-    # Connect the Vector Store
+    # Load your specific collection
     vector_db = Chroma(
         client=client,
-        collection_name="upsc_collection", # Make sure this matches your Chroma Cloud name
+        collection_name="upsc_collection", # DOUBLE CHECK: Make sure this matches your Chroma Cloud name
         embedding_function=embeddings
     )
 
@@ -38,17 +46,27 @@ def init_upsc_cloud():
         return_source_documents=True
     )
 
-# 3. FRONTEND
-st.title("🎓 UPSCgtp")
-st.caption("Connected to Cloud Intelligence")
+# --- 3. THE INTERFACE ---
+st.title("🎓 UPSCGPT")
+st.write("Contextual AI for UPSC Aspirants")
 
-with st.spinner("Connecting to Cloud..."):
-    upsc_engine = init_upsc_cloud()
+try:
+    engine = connect_to_upscgpt_brain()
+    
+    if prompt := st.chat_input("Ask a doubt from the 2026 Budget or NCERTs..."):
+        st.chat_message("user").write(prompt)
+        
+        with st.spinner("Searching Cloud Knowledge Base..."):
+            response = engine.invoke({"query": prompt})
+            
+            with st.chat_message("assistant"):
+                st.write(response["result"])
+                
+                # Citations (Crucial for PMs to show "Grounding")
+                with st.expander("📚 Verified Sources"):
+                    sources = {os.path.basename(doc.metadata.get('source', 'Document')) for doc in response["source_documents"]}
+                    for s in sources:
+                        st.write(f"- {s}")
 
-query = st.chat_input("Ask about UPSC topics...")
-
-if query:
-    st.chat_message("user").write(query)
-    with st.spinner("Retrieving from Cloud Database..."):
-        response = upsc_engine.invoke({"query": query})
-        st.chat_message("assistant").write(response["result"])
+except Exception as e:
+    st.error(f"Configuration Error: Please verify your Streamlit Cloud Secrets. Error: {e}")
