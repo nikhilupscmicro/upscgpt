@@ -3,6 +3,7 @@ import chromadb
 import os
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from langchain_community.vectorstores import Chroma
+# We update this specific line below:
 from langchain.chains import RetrievalQA
 
 # --- 1. BRANDING & UI ---
