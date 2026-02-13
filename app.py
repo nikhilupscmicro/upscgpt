@@ -1,14 +1,12 @@
 import streamlit as st
 import os
+import chromadb  # ← MISSING IMPORT - Add this!
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from langchain_community.vectorstores import Chroma
-# RetrievalQA now imported from langchain_community
 from langchain_community.chains import RetrievalQA
 
 # --- 1. BRANDING & UI ---
 st.set_page_config(page_title="UPSCGPT", page_icon="🎓")
-
-
 st.markdown("""
     <style>
     .stApp { background-color: #0F172A; color: white; }
@@ -23,11 +21,18 @@ def connect_to_upscgpt_brain():
     api_key = st.secrets["GOOGLE_API_KEY"]
     host = st.secrets["CHROMA_CLOUD_HOST"]
     token = st.secrets["CHROMA_CLOUD_TOKEN"]
-
+    
     # Initialize Gemini 1.5 Flash
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004", google_api_key=api_key)
-    llm = ChatGoogleGenerativeAI(model="gemini-1.5-flash", google_api_key=api_key, temperature=0.1)
-
+    embeddings = GoogleGenerativeAIEmbeddings(
+        model="models/text-embedding-004", 
+        google_api_key=api_key
+    )
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-1.5-flash", 
+        google_api_key=api_key, 
+        temperature=0.1
+    )
+    
     # Connect to the Remote Chroma Cloud
     client = chromadb.HttpClient(
         host=host,
@@ -37,10 +42,10 @@ def connect_to_upscgpt_brain():
     # Load your specific collection
     vector_db = Chroma(
         client=client,
-        collection_name="upsc_collection", # DOUBLE CHECK: Make sure this matches your Chroma Cloud name
+        collection_name="upsc_collection",  # Make sure this matches your Chroma Cloud name
         embedding_function=embeddings
     )
-
+    
     return RetrievalQA.from_chain_type(
         llm=llm,
         retriever=vector_db.as_retriever(search_kwargs={"k": 3}),
@@ -65,9 +70,12 @@ try:
                 
                 # Citations (Crucial for PMs to show "Grounding")
                 with st.expander("📚 Verified Sources"):
-                    sources = {os.path.basename(doc.metadata.get('source', 'Document')) for doc in response["source_documents"]}
+                    sources = {
+                        os.path.basename(doc.metadata.get('source', 'Document')) 
+                        for doc in response["source_documents"]
+                    }
                     for s in sources:
                         st.write(f"- {s}")
-
+                        
 except Exception as e:
     st.error(f"Configuration Error: Please verify your Streamlit Cloud Secrets. Error: {e}")
