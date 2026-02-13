@@ -3,8 +3,8 @@ import chromadb
 import os
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from langchain_community.vectorstores import Chroma
-# We update this specific line below:
-from langchain.chains import RetrievalQA
+# Force the import from the community folder
+from langchain.chains.retrieval_qa.base import RetrievalQA
 
 # --- 1. BRANDING & UI ---
 st.set_page_config(page_title="UPSCGPT", page_icon="🎓")
